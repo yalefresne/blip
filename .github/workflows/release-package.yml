@@ -1,6 +1,9 @@
 name: Publish release to PyPI
 
-on: push
+on:
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -20,6 +23,12 @@ jobs:
       - name: Install pypa/build
         run: python3 -m pip install build --user
 
+      - name: Handle package version on setup file
+        run: |
+          sed -i "s#PACKAGE_VERSION#${GITHUB_REF#refs/*/}#" ./Blip/setup.py
+
+      - run: cat ./Blip/setup.py
+
       - name: Build a binary wheel and a source tarball
         run: python3 -m build
         working-directory: ${{ env.working_directory }}
@@ -32,7 +41,7 @@ jobs:
 
   publish-to-pypi:
     name: Publish package to PyPI
-    if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
+    #if: startsWith(github.ref, 'refs/tags/')  # only publish to PyPI on tag pushes
     needs:
       - build
     runs-on: ubuntu-latest
@@ -48,8 +57,11 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
+
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@v1.8.10
+        with:
+          repository-url: https://test.pypi.org/legacy/
 
   github-release:
     name: >-
